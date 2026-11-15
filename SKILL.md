@@ -88,7 +88,7 @@ Windows 没有 `python` 时用 `py -3` 或 Python 绝对路径。要作为 DSH �
 - **profile/detail 模式**：`config/hotels.profile.csv`（同列，**必须填 hotel_id 或 detail url**）。实测 `city=2` → 上海。
 - 首次使用把 `*.example.csv` 复制成真实清单；真实清单已被 `.gitignore` 排除，不会误提交。缺清单时脚本自动回退到 example 模板。
 - 本机私有覆盖：`config/settings.local.json`（只写要覆盖的字段，如 `output_dir` 绝对路径），不发布。
-- **hotelId 从哪来**：列表页 `.hotel-card` 的 `id` 属性（如 15018492）；或用 `--mode discover` 自动发现。
+- **hotelId 从哪来**：列表页 `.hotel-card` 的 `id` 属性（如 10000001）；或用 `--mode discover` 自动发现。
 
 ## 输出（默认 ./output，相对仓库根）
 

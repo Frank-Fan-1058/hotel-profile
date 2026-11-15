@@ -39,7 +39,7 @@ FLAG_KW = {
     "has_spa": ["SPA", "spa", "水疗", "桑拿", "足浴"],
     "has_airport_shuttle": ["接送机", "机场接送", "接站", "班车", "送机"],
     "has_wifi": ["wifi", "Wi-Fi", "无线上网", "公用区wifi"],
-    "has_bar": ["酒吧", "大堂吧", "酒廊", "玥吧"],
+    "has_bar": ["酒吧", "大堂吧", "酒廊", "示例吧"],
 }
 
 DISCOVER_JS = r"""(function(){
