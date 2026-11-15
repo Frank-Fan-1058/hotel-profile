@@ -23,3 +23,5 @@ venv/
 Thumbs.db
 .idea/
 .vscode/
+# 本机凭据
+.npmrc
