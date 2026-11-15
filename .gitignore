@@ -1,0 +1,25 @@
+# 本机私有配置（含绝对路径，不发布）
+config/settings.local.json
+config/hotels.csv
+config/hotels.profile.csv
+
+# 运行产物（追加写，不入库）
+output/
+产出/
+progress.json
+progress_profile.json
+calibration.json
+discovered_hotels.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

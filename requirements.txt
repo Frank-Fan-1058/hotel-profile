@@ -1,0 +1,2 @@
+# 可选依赖：仅生成 .xlsx 时需要。不安装也能运行（CSV/JSONL 照常输出，日志会提示跳过 Excel）。
+openpyxl>=3.1

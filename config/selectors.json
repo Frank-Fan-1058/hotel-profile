@@ -1,0 +1,57 @@
+{
+  "_note": "CSS 候选按出现顺序取第一个非空文本。list 模式在每个 .hotel-card 卡片内取；profile 模式在详情页取全档案。2026-11-15 真实登录态实测校准，见 references/ctrip-page-map.md。改版后请重跑 --calibrate 再调。价格用 .room-price .sale / .delete，不要用宽泛 [class*=price]（会命中 ¥0-¥200 筛选栏）。",
+  "list_container": ".hotel-card",
+  "detail_container": null,
+  "detail": {
+    "hotel_name": ["[class*=hotelName]", "[class*=hotel-name]", "h1", "[itemprop=name]"],
+    "star": ["[class*=hotelStar]", "[class*=star]"],
+    "rating": ["[class*=comment-score]", "[class*=score]", "[class*=rating]", "[itemprop=ratingValue]"],
+    "review_count": ["[class*=comment-num]", "[class*=reviewCount]", "[class*=comment]"],
+    "address": ["[class*=hotel-position]", "[class*=address]", "[itemprop=address]"],
+    "price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "ctrip_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "list_price": [".room-price .delete", ".room-price del", "[class*=originalPrice]", "del", "s"],
+    "room_type": ["[class*=roomName]", "[class*=roomType]", "[class*=room-name]"],
+    "bed_type": ["[class*=bedType]", "[class*=bed]"],
+    "area": ["[class*=roomArea]", "[class*=area]"],
+    "breakfast": ["[class*=breakfast]"],
+    "cancellation": ["[class*=cancelPolicy]", "[class*=cancel]"],
+    "promo_tags": [".promotion-tag", "[class*=hotel-tag]", "[class*=promo]", "[class*=tag]"],
+    "availability": ["[class*=remain]", "[class*=stock]", "[class*=availability]"]
+  },
+  "list": {
+    "hotel_name": ["[class*=hotelName]", ".hotel-title", "h3", "h2"],
+    "star": ["[class*=hotelStar]", "[class*=star]"],
+    "rating": ["[class*=comment-score]", ".comment-score", "[class*=score]"],
+    "review_count": ["[class*=comment-num]", ".comment-num", "[class*=comment]"],
+    "address": ["[class*=hotel-position]", ".hotel-position", "[class*=address]"],
+    "price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "ctrip_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "list_price": [".room-price .delete", ".room-price del", "[class*=originalPrice]", "del", "s"],
+    "promo_tags": [".hotel-tag", ".promotion-tag", "[class*=tag]"],
+    "cancellation": [".hotel-tag", "[class*=cancel]"]
+  },
+  "profile": {
+    "_note": "详情页全档案，2026-11-15 在 hotelId=15018492（上海徐家汇禧玥酒店）真实登录态实测。one=取首段文本；longest=取最长块；all=去重列表（rooms 保留换行供 Python 解析）。携程改版后重跑 --calibrate 再调。",
+    "one": {
+      "hotel_name": ["[class*=hotelNameRow_hotelOverview_name]", "h1", "[itemprop=name]"],
+      "address": ["[class*=hotelAddre]", "[itemprop=address]"],
+      "phone": ["[class*=hotelContact]"],
+      "score": ["[class*=reviewScore]"],
+      "metro": ["[class*=hotelLocation-detail]", "[class*=hotelLocationNew]"],
+      "breakfast_policy": ["[class*=hotelPolicyNew_breakfa]"],
+      "photos": ["[class*=photoNum]", "[class*=viewAllPhoto]"]
+    },
+    "longest": {
+      "facilities": ["[class*=hotelFacilityNew_hotelFacilityNewA]", "[class*=hotelFacility-container]", "[class*=hotelFacilityNew_allFacility]"],
+      "policy": ["[class*=hotelPolicyNew_hotelPolicyNew]", "[class*=hotelPolicy-content]"],
+      "intro": ["[class*=hotelOverview_content]", "[class*=hotelOverview_desc]"],
+      "nearby": ["[class*=hotelLocationNew_hotelLocation-container]", "[class*=hotelLocationNew]"]
+    },
+    "all": {
+      "rooms": "[class*=commonRoomCard__],[class*=mainRoomLi],[class*=commonRoomCardHidden]",
+      "facility_items": "[class*=hotelFacility-popular_item],[class*=hotelFacility-normal_drawerItem]",
+      "highlights": "[class*=hotelOverview_tag],[class*=hotelTag],[class*=featureTag]"
+    }
+  }
+}

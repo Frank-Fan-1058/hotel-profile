@@ -1,0 +1,32 @@
+{
+  "bsk_cli": "bsk",
+  "browser_instance": "",
+  "mode": "list",
+  "checkin": "2026-11-20",
+  "checkout": "2026-11-21",
+  "date_sep": "/",
+  "detail_url_template": "https://hotels.ctrip.com/hotels/detail/?hotelId={hotel_id}&checkin={checkin}&checkout={checkout}",
+  "list_url_template": "https://hotels.ctrip.com/hotels/list?city={city_id}&checkin={checkin}&checkout={checkout}",
+  "output_dir": "./output",
+  "hotels_csv": "hotels.csv",
+  "profile_hotels_csv": "hotels.profile.csv",
+  "default_city": "上海",
+  "shuffle": true,
+  "max_per_run": 0,
+  "max_rows_per_page": 60,
+  "long_rest_every": 12,
+  "write_xlsx": true,
+  "allow_handoff": true,
+  "handoff_timeout": 300,
+  "max_action_retries": 8,
+  "sync_backoff": [0.9, 1.6],
+  "evaluate_depends_on": [],
+  "guests_rooms": "1间,2成人",
+  "pace": {
+    "after_navigate": [1.5, 3.2],
+    "dwell": [1.0, 2.6],
+    "between_hotels": [2.2, 4.8],
+    "long_rest": [25, 55],
+    "wheel_steps_max": 2
+  }
+}
