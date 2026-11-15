@@ -1,9 +1,9 @@
 ---
-name: ctrip-hotel-price
-description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tencent/BrowserSkill）模拟真人操作，批量采集携程酒店的价格与全档案信息（房型/床型/面积/会议室/泳池/健身房/餐厅/停车场/周边配套POI/地铁/酒店政策/简介等）。当用户要采集、监控、比价携程酒店价格，或要批量获取酒店设施与周边参数，或要配置定时批量取价时使用。抗反爬：复用真实登录态与浏览器指纹、只读渲染 DOM、拟人节奏、遇验证码或登录墙转人工。只强依赖独立开源的 bsk CLI，不依赖 DSH，可单独发布到 GitHub。
+name: hotel-profile
+description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tencent/BrowserSkill）模拟真人操作，批量采集酒店的价格与全档案信息（房型/床型/面积/会议室/泳池/健身房/餐厅/停车场/周边配套POI/地铁/酒店政策/简介等）。当用户要采集、监控、比价酒店价格，或要批量获取酒店设施与周边参数，或要配置定时批量取价时使用。当前默认平台适配器为 ctrip.com，平台相关配置集中在 config/selectors.json 与 URL 模板，可替换。抗反爬：复用真实登录态与浏览器指纹、只读渲染 DOM、拟人节奏、遇验证码或登录墙转人工。只强依赖独立开源的 bsk CLI，不依赖 DSH，可单独发布到 GitHub。
 ---
 
-# 携程酒店批量采集（ctrip-hotel-price）
+# 酒店数据采集（hotel-profile）
 
 ## 一句话结论
 
@@ -27,11 +27,11 @@ description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tence
 - 要批量看「对应酒店」的最新价格、评分、点评数、位置；
 - 要更全的酒店信息：房型/床型/面积/楼层、会议室、泳池、健身房、餐厅、停车场、SPA、接送机、酒吧、周边配套 POI 与距离、地铁站、酒店政策、简介；
 - 要定时重复取价形成价格快照/历史；
-- 携程反爬强、直连 API 或 headless 会被拦，需要模拟真人行为。
+- 平台反爬强（当前默认 ctrip.com），直连 API 或 headless 会被拦，需要模拟真人行为。
 
 ## 前置条件（缺一不可）
 
-1. **真实浏览器已登录携程账号**：未登录时列表页只显示「登录以查看会员价」、价格为空。技能检测到会调 `request-help` 让真人登录。
+1. **真实浏览器已登录目标平台账号**（当前默认 ctrip.com）：未登录时列表页只显示「登录以查看会员价」、价格为空。技能检测到会调 `request-help` 让真人登录。
 2. **`bsk` CLI + 扩展 + daemon**：自行安装 [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill)。
    - `bsk` 不在 PATH 时：设环境变量 `BSK_CLI`，或在 `config/settings.json` 写 `bsk_cli` 绝对路径。
    - 普通终端里 `bsk` 会自动拉起 daemon；**DSH 桌面宿主**禁止 Job Object breakaway，需手动常驻：`BSK_AUTO_START=0 bsk daemon start --foreground`，客户端同样带 `BSK_AUTO_START=0`（脚本已内置）。
@@ -53,7 +53,7 @@ description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tence
 ## 快速开始
 
 ```bash
-cd ctrip-hotel-price
+cd hotel-profile
 python -m pip install -r requirements.txt          # 可选，只为输出 xlsx
 cp config/hotels.example.csv config/hotels.csv
 cp config/hotels.profile.example.csv config/hotels.profile.csv
@@ -66,7 +66,7 @@ python scripts/ctrip_hotel.py --mode discover --from-list "<列表页URL>"
 python -m unittest discover -s tests -v            # 离线解析测试，不需浏览器
 ```
 
-Windows 没有 `python` 时用 `py -3` 或 Python 绝对路径。要作为 DSH 技能用，把整个目录放到 `~/.dsh/skills/ctrip-hotel-price/`。
+Windows 没有 `python` 时用 `py -3` 或 Python 绝对路径。要作为 DSH 技能用，把整个目录放到 `~/.dsh/skills/hotel-profile/`。
 
 ## 命令
 
@@ -133,7 +133,7 @@ Windows 没有 `python` 时用 `py -3` 或 Python 绝对路径。要作为 DSH �
 ## 文件结构
 
 ```
-ctrip-hotel-price/
+hotel-profile/
 ├─ SKILL.md                 # Agent 入口（本文件）
 ├─ README.md                # GitHub / 用户速查
 ├─ LICENSE                  # MIT
