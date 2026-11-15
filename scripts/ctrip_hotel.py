@@ -16,7 +16,16 @@ from __future__ import annotations
 import argparse, csv, json, os, random, re, shutil, subprocess, sys, time, datetime
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CFG = os.path.join(HERE, "config")
+
+def _pick_cfg_dir(root):
+    """配置目录：优先 <root>/config，其次 <root>/scripts/config（WorkBuddy 技能包布局）。"""
+    for rel in ("config", os.path.join("scripts", "config")):
+        p = os.path.join(root, rel)
+        if os.path.isdir(p):
+            return p
+    return os.path.join(root, "config")
+
+CFG = _pick_cfg_dir(HERE)
 CF = 0x08000000 if os.name == "nt" else 0  # CREATE_NO_WINDOW
 
 def stamp():
@@ -59,9 +68,18 @@ def resolve_input(name, fallback=None):
     return p
 
 def output_dir(cfg):
-    """输出目录：绝对路径原样用，相对路径按技能根解析（默认 ./output）。"""
+    """输出目录：环境变量 HOTEL_PROFILE_OUTPUT > 配置 output_dir > 默认 ./output。
+
+    相对路径按技能根解析；技能包只读时（如宿主机只挂载只读目录）回退到当前工作目录。
+    """
+    env = os.environ.get("HOTEL_PROFILE_OUTPUT")
+    if env:
+        return os.path.abspath(env)
     d = cfg.get("output_dir") or "./output"
-    return d if os.path.isabs(d) else os.path.abspath(os.path.join(HERE, d))
+    if os.path.isabs(d):
+        return d
+    base = HERE if os.access(HERE, os.W_OK) else os.getcwd()
+    return os.path.abspath(os.path.join(base, d))
 
 def extract_json(text):
     if not text: return {}

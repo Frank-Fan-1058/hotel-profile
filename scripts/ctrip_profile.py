@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ctrip_hotel as C
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CFG = os.path.join(HERE, "config")
+CFG = C.CFG  # 与主驱动一致：<root>/config 或 <root>/scripts/config
 JS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profile_extract.js")
 
 PROFILE_COLS = ["capture_time", "ctrip_hotel_id", "hotel_name", "city", "address", "phone",
