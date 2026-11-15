@@ -38,9 +38,15 @@
 | `policy` / `breakfast_policy` | 酒店政策 / 早餐政策 | 入离时间等 / 儿童与成人早餐价 |
 | `status` / `notes` | 见下 | 质量 / 原因 |
 
-### hotel_rooms.csv —— 一个房型一行
+### hotel_rooms.csv —— 一个价格方案一行
 
-`room_name` 房型名｜`bed_type` 床型（如「1张1.8米大床」）｜`area_sqm` 面积㎡｜`floor` 楼层｜`window` 有窗/无窗｜`smoke` 禁烟｜`wifi`｜`price_num` / `price_text` 房型起价｜`breakfast` 早餐｜`cancellation` 取消政策｜`availability` 余量。均从房型卡片文本正则抽取，抽不到留空。
+同一房型常挂多个价格方案（标准价 / 含早价 / 会员价），**每个方案单独一行**，靠 `room_name`+`price_num` 区分：
+
+`room_name` 房型名｜`bed_type` 床型（如「1张1.8米大床」）｜`area_sqm` 面积㎡｜`floor` 楼层｜`window` 有窗/无窗｜`smoke` 禁烟｜`wifi`｜`price_num` / `price_text` 该方案价格｜`plan` 方案标记（标准价 / 方案2…）｜`breakfast` 早餐｜`cancellation` 取消政策｜`availability` 余量。
+
+- 均从房型卡片文本抽取，抽不到留空——**不猜**。
+- 「展示其余 N 个房型」「查看更多」这类按钮文案**不是房型**，会被跳过。
+- `hotel_profiles.csv` 的 `room_type_count` 是**去重房型名**的数量，不等于本表行数。
 
 ### hotel_nearby.csv —— 一个周边 POI 一行
 

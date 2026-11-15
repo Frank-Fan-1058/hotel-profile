@@ -25,7 +25,7 @@ PROFILE_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "city", "addr
                 "policy", "breakfast_policy", "checkin", "checkout", "source_url", "status", "notes"]
 
 ROOM_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "room_name", "bed_type",
-             "area_sqm", "floor", "window", "smoke", "wifi", "price_num", "price_text",
+             "area_sqm", "floor", "window", "smoke", "wifi", "price_num", "price_text", "plan",
              "breakfast", "cancellation", "availability", "checkin", "checkout"]
 
 NEARBY_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "category", "poi_name", "distance"]
@@ -75,35 +75,142 @@ def build_js(fields):
     return js.replace("__FIELDS__", json.dumps(fields, ensure_ascii=False))
 
 # --------------------------- 纯解析函数（可用真实快照离线验证） ---------------------------
-def parse_room(text):
-    t = (text or "").strip()
-    if len(t) < 8: return None
+# 房型名判定：属性行都带数字（1张1.8米大床 / 24平方米 / 4-12层 / ¥837）或下列词。
+# 注意：不能用「床」「窗」当停止词——「经典大床房」「双床房」本身就是房型名。
+ROOM_ATTR_KW = ("平方米", "Wi-Fi", "wifi", "免费", "￥", "¥", "早餐", "取消", "在线付",
+                "确认", "仅剩", "房量", "至多", "满房", "售罄", "预订", "房间详情",
+                "房型摘要", "可住人数", "今日价格", "有窗", "无窗", "禁烟", "吸烟",
+                # 会员价/促销标签不是房型名（真实页面会在价格前单独一行）
+                "贵宾价", "会员价", "会员专享", "促销", "特惠", "优惠", "立减", "折扣",
+                "限时", "推荐", "广告", "含早", "不含早", "含双早", "限时抢", "返现")
+BTN_WORDS = ("展示其余", "查看更多", "查看全部", "收起", "展开", "加载更多")
+
+
+def _find_bed(text):
+    """找床型。房型名尾部数字会和床位粘连（「庭院套房131张」），
+    所以只接受 1~5 张这个合理范围，且优先取能完整读出「N张…床」的那一处。"""
+    cands = re.findall(r"(\d{1,2})\s*张[^，,|\n]{0,30}?床", text)
+    for c in cands:
+        if 1 <= int(c) <= 5:
+            m = re.search(r"(\d{1,2}\s*张[^，,|\n]{0,30}?床)", text)
+            return m
+    return None
+
+
+def _room_name_from(lines):
+    """认出房型名：取第一行「不含数字、不命中属性词、不是按钮文案」的行。
+
+    真实卡片首行就是房型名（经典大床房），其后全是带数字的属性行。
+    """
+    for l in lines[:6]:
+        if re.fullmatch(r"\d+", l):          # 人数/序号
+            continue
+        if re.search(r"\d", l):              # 属性行几乎都带数字
+            continue
+        if any(k in l for k in BTN_WORDS):
+            continue
+        if any(k in l for k in ROOM_ATTR_KW):
+            continue
+        return re.sub(r"\d+$", "", l).strip()
+    # 兜底：整卡被粘成一行（「庭院套房131张1.8米大床有窗禁烟80平方米…」）
+    # 截到第一个「数字+属性词」之前当房型名，避免把属性串吞进名字
+    first = lines[0] if lines else ""
+    m = re.search(r"\d+\s*(?:张|平方米|层|晚|人)", first)
+    if m:
+        head = re.sub(r"\d+$", "", first[:m.start()]).strip()
+        if len(head) >= 2 and not any(k in head for k in BTN_WORDS):
+            return head
+    return ""
+
+
+def _is_name_line(l):
+    """可能是房型名的行：非纯数字、不含数字、不是属性词、不是按钮文案。"""
+    if re.fullmatch(r"\d+", l):
+        return False
+    if re.search(r"\d", l):
+        return False
+    if any(k in l for k in BTN_WORDS):
+        return False
+    if any(k in l for k in ROOM_ATTR_KW):
+        return False
+    return len(l.strip()) >= 2
+
+
+def split_room_blocks(text):
+    """把一大段房型文本切成「一个房型一块」。
+
+    真实抽取可能把整块房型列表当成一个元素返回（外层容器也被匹配到），
+    这时直接解析会把所有价格都算到第一个房型名下。按「房型名行」重新切块。
+    """
+    lines = [l.strip() for l in (text or "").splitlines() if l.strip()]
+    blocks, cur = [], []
+    for l in lines:
+        if _is_name_line(l) and cur and any("¥" in x or "￥" in x for x in cur):
+            blocks.append(cur)
+            cur = [l]
+        else:
+            cur.append(l)
+    if cur:
+        blocks.append(cur)
+    return ["\n".join(b) for b in blocks]
+
+
+def parse_room(text, base=None):
+    """解析房型文本，返回 list：一个价格方案一行。
+
+    输入可能是「单张卡」也可能是「整段房型列表」，先切块再逐块解析。
+    """
+    out = []
+    for block in split_room_blocks(text):
+        out.extend(_parse_room_block(block))
+    # 同名房型已有带价行时，丢掉那些空价行（通常是标签行被误切出来）
+    priced = {r["room_name"] for r in out if r.get("price_num") not in ("", None)}
+    return [r for r in out if r.get("price_num") not in ("", None) or r["room_name"] not in priced]
+
+
+def _parse_room_block(t):
+    t = (t or "").strip()
+    if len(t) < 8:
+        return []
     lines = [l.strip() for l in t.splitlines() if l.strip()]
-    name = lines[0] if lines else ""
-    if re.match(r"^\d+$", name) and len(lines) > 1: name = lines[1]
-    name = re.sub(r"\d+$", "", name).strip()
-    if not name: return None
-    bed = re.search(r"(\d+张[^，,|\n]{0,40}?床)", t)
+    name = _room_name_from(lines)
+    if not name:
+        return []
+    if any(k in name for k in BTN_WORDS):
+        return []
+
+    bed = _find_bed(t)
     area = re.search(r"(\d+(?:\.\d+)?)\s*平方米", t)
     floor = re.search(r"(\d+(?:-\d+)?层)", t)
-    price = re.search(r"[¥￥]\s*([\d,]+)", t)
-    bf = re.search(r"(无早餐|含早餐|\d+份早餐|双早|单早|自助早餐)", t)
-    cxl = re.search(r"([^\n]{0,30}取消[^\n]{0,20})", t)
-    avail = re.search(r"(仅剩\d+间|房量紧张|满房|售罄|至多\d+间|有房)", t)
-    return {
+    prices = [int(x.replace(",", "")) for x in re.findall(r"[¥￥]\s*([\d,]+)", t)]
+    seen = set()
+    prices = [p for p in prices if not (p in seen or seen.add(p))]
+
+    common = {
         "room_name": name[:60],
-        "bed_type": bed.group(1) if bed else "",
+        "bed_type": re.sub(r"\s+", "", bed.group(0)) if bed else "",
         "area_sqm": area.group(1) if area else "",
         "floor": floor.group(1) if floor else "",
         "window": "有窗" if "有窗" in t else ("无窗" if "无窗" in t else ""),
-        "smoke": "禁烟" if "禁烟" in t else "",
+        "smoke": "禁烟" if "禁烟" in t else ("吸烟" if "吸烟" in t else ""),
         "wifi": "免费" if re.search(r"Wi-?Fi免费|免费Wi-?Fi", t, re.I) else ("有" if re.search(r"wi-?fi", t, re.I) else ""),
-        "price_num": int(price.group(1).replace(",", "")) if price else "",
-        "price_text": price.group(0) if price else "",
-        "breakfast": bf.group(1) if bf else "",
-        "cancellation": cxl.group(1).strip() if cxl else "",
-        "availability": avail.group(1) if avail else "",
     }
+    bf = re.search(r"(无早餐|含早餐|\d+份早餐|双早|单早|自助早餐)", t)
+    cxl = re.search(r"([^\n]{0,30}取消[^\n]{0,20})", t)
+    avail = re.search(r"(仅剩\d+间|房量紧张|满房|售罄|至多\d+间|有房)", t)
+    common["breakfast"] = bf.group(1) if bf else ""
+    common["cancellation"] = cxl.group(1).strip() if cxl else ""
+    common["availability"] = avail.group(1) if avail else ""
+
+    if not prices:
+        return [dict(common, price_num="", price_text="", plan="")]
+    out = []
+    for i, p in enumerate(prices):
+        out.append(dict(common,
+                        price_num=p,
+                        price_text="¥%s" % format(p, ","),
+                        plan=("标准价" if i == 0 else "方案%d" % (i + 1))))
+    return out
 
 def parse_nearby(text):
     t = text or ""
@@ -138,10 +245,17 @@ def flatten(v, base):
     al = v.get("all") or {}
     items = [x for x in (al.get("facility_items") or []) if x]
     fac = " | ".join([x for x in [(lng.get("facilities") or ""), ("、".join(items[:80]))] if x])
+    # 同一房型可能有多个价格方案（标准价/会员价/含早价…），按 (房型, 价格) 去重后各算一行
     rooms, rseen = [], set()
-    for r in (parse_room(t) for t in (al.get("rooms") or [])):
-        if r and r["room_name"] not in rseen:
-            rseen.add(r["room_name"]); rooms.append(r)
+    for t in (al.get("rooms") or []):
+        for r in parse_room(t):
+            k = (r.get("room_name"), r.get("price_num"))
+            if r["room_name"] and k not in rseen:
+                rseen.add(k); rooms.append(r)
+    # 跨元素兜底：同名房型只要有带价行，空价行一律丢掉（多为标签行被单独切出）
+    priced = {r["room_name"] for r in rooms if r.get("price_num") not in ("", None)}
+    rooms = [r for r in rooms
+             if r.get("price_num") not in ("", None) or r["room_name"] not in priced]
     nb_text = v.get("nearby_block") or lng.get("nearby") or ""
     pois = parse_nearby(nb_text)
     score = one.get("score") or ""
@@ -153,11 +267,11 @@ def flatten(v, base):
     row.update(derive_flags(fac))
     row.update({
         "hotel_name": one.get("hotel_name") or base.get("hotel_name") or "",
-        "address": one.get("address") or "",
+        "address": re.sub(r"显示地图\s*$", "", (one.get("address") or "")).strip(),
         "phone": (one.get("phone") or "").replace("电话：", "").strip(),
         "rating": rm.group(1) if rm else "",
-        "review_count": cm.group(1) if cm else "",
-        "room_type_count": len(rooms),
+        "review_count": (cm.group(1).replace(",", "") if cm else ""),
+        "room_type_count": len({r["room_name"] for r in rooms}),
         "facilities": fac[:6000],
         "nearby_summary": "；".join(["%s:%s(%s)" % (p["category"], p["poi_name"], p["distance"] or "—") for p in pois])[:2000],
         "nearby_poi_count": len(pois),

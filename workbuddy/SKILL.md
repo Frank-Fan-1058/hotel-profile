@@ -14,7 +14,7 @@ examples_en:
 - "I have an Excel list of hotels — build one table of meeting room, pool and gym availability"
 - "Run a daily price check on these 20 hotels and flag any drops"
 version: 1.0.1
-author: "Frank-Fan-1058"
+author: "hotel-profile contributors"
 allowed-tools: Bash, Read, Write, Edit
 ---
 
@@ -117,7 +117,7 @@ python scripts/hotel_scraper.py --mode profile --from-list "<列表页URL>" --li
 | --- | --- |
 | `prices.csv / .jsonl / .xlsx` | 列表页价格快照，追加写 |
 | `hotel_profiles.csv` | 一家一行：基本信息 + 9 项设施标记 + 周边汇总 + 政策 + 简介 |
-| `hotel_rooms.csv` | 一个房型一行：床型/面积/楼层/窗/烟/WiFi/价/早餐/取消/余量 |
+| `hotel_rooms.csv` | **一个价格方案一行**：房型名/床型/面积/楼层/窗/烟/WiFi/价/早餐/取消/余量（同房型多方案各一行） |
 | `hotel_nearby.csv` | 一个 POI 一行：类别/名称/距离 |
 | `hotel_report.xlsx` | 上面三张表各一个 sheet |
 | `matched_hotels.csv / match_review.csv` | 名称匹配成功 / 待确认 |

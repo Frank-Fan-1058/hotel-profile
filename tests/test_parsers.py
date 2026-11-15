@@ -43,7 +43,7 @@ class PriceTests(unittest.TestCase):
 
 class RoomTests(unittest.TestCase):
     def test_room_fields(self):
-        r = P.parse_room(ROOM_TEXT)
+        r = P.parse_room(ROOM_TEXT)[0]
         self.assertEqual(r["room_name"], "经典大床房")
         self.assertEqual(r["bed_type"], "1张1.8米大床")
         self.assertEqual(r["area_sqm"], "24")
@@ -53,6 +53,23 @@ class RoomTests(unittest.TestCase):
         self.assertEqual(r["price_num"], 837)
         self.assertEqual(r["breakfast"], "无早餐")
         self.assertIn("免费取消", r["cancellation"])
+
+
+class RoomPlanTests(unittest.TestCase):
+    """同一房型多个价格方案（标准价/含早价）必须各算一行。"""
+
+    MULTI = ("高级大床房\n2\n1张1.8米大床\n有窗\n禁烟\n28平方米 | 4-7层\n"
+             "Wi-Fi免费\n无早餐\n¥883\n1份早餐\n¥963\n仅剩2间")
+
+    def test_multiple_plans_split(self):
+        rows = P.parse_room(self.MULTI)
+        self.assertEqual(len(rows), 2, "两个价格方案应拆成两行")
+        self.assertEqual([r["price_num"] for r in rows], [883, 963])
+        self.assertEqual(rows[0]["room_name"], rows[1]["room_name"])
+
+    def test_button_row_is_not_a_room(self):
+        self.assertEqual(P.parse_room("展示其余1个房型"), [])
+        self.assertEqual(P.parse_room("查看更多"), [])
 
 
 class NearbyTests(unittest.TestCase):
@@ -95,7 +112,7 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(row["nearby_poi_count"], 6)
         self.assertEqual(row["has_meeting_room"], "是")
         self.assertEqual(row["has_pool"], "否")
-        self.assertEqual(row["review_count"], "7,014")
+        self.assertEqual(row["review_count"], "7014")   # 千分位逗号已清除
 
 
 class ConfigTests(unittest.TestCase):
@@ -114,9 +131,14 @@ class ConfigTests(unittest.TestCase):
 class MatchTests(unittest.TestCase):
     """模糊匹配：用户导入的名称常与站点正式名不一致。"""
 
-    def test_normalize_strips_generic_and_notes(self):
+    def test_normalize_keeps_branch_words(self):
+        """分店名在括号里，必须保留——删掉会让同品牌所有分店同分（回归 2026-11-16 缺陷）。"""
         import match_hotels as M
-        self.assertEqual(M.normalize("星澜酒店(上海南京东路店)"), M.normalize("星澜"))
+        self.assertIn("南京东路", M.normalize("星澜酒店(南京东路店)"))
+        self.assertNotEqual(M.normalize("星澜酒店(南京东路店)"),
+                            M.normalize("星澜酒店(浦东机场店)"))
+        # 通用词仍然被清掉
+        self.assertEqual(M.normalize("星澜酒店"), "星澜")
 
     def test_same_hotel_different_wording(self):
         import match_hotels as M

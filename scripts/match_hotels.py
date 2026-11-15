@@ -25,6 +25,7 @@ NOISE = [
     "大酒店", "酒店", "宾馆", "饭店", "旅馆", "公寓", "民宿", "客栈", "度假村", "度假酒店",
     "旗舰店", "分店", "店", "有限公司", "集团", "连锁",
     "hotel", "inn", "hostel", "resort", "apartment", "the",
+    "示例市", "上海", "北京", "广州", "深圳", "杭州", "成都", "示例",
 ]
 # 常见同义/缩写归一
 ALIAS = {
@@ -55,7 +56,9 @@ def normalize(name):
     if not name:
         return ""
     s = unicodedata.normalize("NFKC", str(name)).strip().lower()
-    s = re.sub(r"[（(【\[].{0,40}?[)）】\]]", " ", s)   # 括号备注
+    # 括号里的通常是分店名（「(云栖路中心店)」），是区分同品牌的关键，只去括号本身、保留内容
+    s = re.sub(r"[（(【\[]", " ", s)
+    s = re.sub(r"[)）】\]]", " ", s)
     s = re.sub(r"[\s\-_·・,，.。/\\|+&*#@!?？：:；;'\"“”‘’]+", " ", s)
     s = re.sub(r"\s+", "", s)
     for w in NOISE:
@@ -70,9 +73,10 @@ def bigrams(s):
 
 
 def tokens(s):
-    """把名称切成有区分度的片段：去掉通用词后的连续中文/字母数字块。"""
+    """把名称切成有区分度的片段（括号内容保留，分店名在里面）。"""
     s = unicodedata.normalize("NFKC", str(s or "")).lower()
-    s = re.sub(r"[（(【\[].{0,40}?[)）】\]]", " ", s)
+    s = re.sub(r"[（(【\[]", " ", s)
+    s = re.sub(r"[)）】\]]", " ", s)
     s = re.sub(r"[\s\-_·・,，.。/\\|+&*#@!?？：:；;'\"“”‘’]+", " ", s)
     out = []
     for seg in s.split():
@@ -111,6 +115,13 @@ def similarity(a, b):
     dice = 2 * len(A & B) / (len(A) + len(B)) if (A and B) else 0.0
     # 一方完整包含另一方（常见：简称 vs 全称）→ 至少 0.85
     contain = 0.85 if (na in nb or nb in na) else 0.0
+    # 查询里的每个有效词都出现在候选中（中间可能插了别的字，如「星澜」+「云栖路」vs「星澜示例云栖路中心」）
+    # 等同全称覆盖，避免城市名/品牌词一插就把分店名拆开导致分数虚低
+    qa = tokens(a)
+    if len(qa) >= 2 and contain < 0.85:
+        cb = "".join(tokens(b))
+        if cb and all(t in cb for t in qa):
+            contain = 0.85
     # 首字相同（中文品牌名强特征）给一点加成
     head = 0.05 if na[0] == nb[0] else 0.0
     return min(1.0, max(dice, contain) + head + token_bonus(a, b))
@@ -130,8 +141,9 @@ def pick_best(query, candidates, threshold=0.72, top_k=3):
     top = ranked[:top_k]
     if not top or top[0]["score"] < threshold:
         return None, top
-    # 第一名与第二名差距过小 → 存在歧义，也交人工
-    if len(top) > 1 and top[0]["score"] - top[1]["score"] < 0.05 and top[0]["score"] < 0.92:
+    # 第一名与第二名差距过小 → 存在歧义，一律交人工。
+    # 不能给高分豁免：分店名被归一后同品牌可能全 1.00，豁免会直接硬猜错分店。
+    if len(top) > 1 and top[0]["score"] - top[1]["score"] < 0.05:
         return None, top
     return top[0], top
 

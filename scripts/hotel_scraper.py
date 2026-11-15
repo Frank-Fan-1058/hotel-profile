@@ -476,12 +476,15 @@ def main():
     ap.add_argument("--input", help="match 模式：用户导入的酒店清单（csv / xlsx）")
     ap.add_argument("--no-pool", action="store_true", help="match 模式：不滚动收集候选池，改为按名称逐个搜索")
     ap.add_argument("--name-column", help="match 模式：清单里酒店名称所在的列名（不填则自动识别）")
+    ap.add_argument("--city-id", help="城市 ID（列表页/匹配用），覆盖 config 的 default_city_id")
     ap.add_argument("--no-handoff", action="store_true", help="后台定时跑：遇登录/验证码只记状态不阻塞")
     ap.add_argument("--settings")
     a = ap.parse_args()
     cfg = load_settings(a.settings or "settings.json")
     if getattr(a, "base_url", None):
         cfg["base_url"] = a.base_url.rstrip("/")
+    if getattr(a, "city_id", None):
+        cfg["default_city_id"] = str(a.city_id)
     sel = load_json("selectors.json")
     if not (cfg.get("base_url") or "").strip():
         log("未指定目标站点。两种做法任选其一：")
