@@ -1,0 +1,52 @@
+{
+  "name": "hotel-profile",
+  "version": "1.0.0",
+  "description": "Collect hotel prices and full profiles (rooms, facilities, nearby POIs, policies) by driving your real, logged-in browser via BrowserSkill (bsk).",
+  "type": "module",
+  "bin": {
+    "hotel-profile": "bin/hotel-profile.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "config/settings.json",
+    "config/selectors.json",
+    "config/hotels.example.csv",
+    "config/hotels.profile.example.csv",
+    "references/",
+    "docs/",
+    "SKILL.md",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "requirements.txt"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "hotel",
+    "hotel-data",
+    "scraper",
+    "browser-automation",
+    "browser-skill",
+    "bsk",
+    "python",
+    "data-collection",
+    "anti-detection",
+    "travel"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Frank-Fan-1058/hotel-profile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Frank-Fan-1058/hotel-profile/issues"
+  },
+  "homepage": "https://github.com/Frank-Fan-1058/hotel-profile#readme",
+  "license": "MIT"
+}

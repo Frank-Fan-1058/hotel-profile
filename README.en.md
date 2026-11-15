@@ -66,6 +66,18 @@ See [references/dependencies.md](references/dependencies.md).
 
 ## Install / run
 
+**Option 1 — npm / npx (one command)**
+
+```bash
+npx hotel-profile --mode list --limit 1        # no clone needed
+npx hotel-profile --mode profile --limit 10
+npm install -g hotel-profile                   # or install globally
+```
+
+The npm package ships the Python driver and config templates; it needs Python 3.9+ locally (set `HOTEL_PROFILE_PYTHON` to pin an interpreter) plus `bsk`. Use option 2 if you plan to edit selectors or keep persistent config.
+
+**Option 2 — clone the repo (recommended long-term)**
+
 ```bash
 git clone https://github.com/Frank-Fan-1058/hotel-profile.git && cd hotel-profile
 python -m pip install -r requirements.txt

@@ -1,0 +1,14 @@
+# 不随 npm 包发布
+__pycache__/
+*.py[cod]
+config/settings.local.json
+config/hotels.csv
+config/hotels.profile.csv
+output/
+产出/
+progress.json
+progress_profile.json
+calibration.json
+discovered_hotels.csv
+tests/
+.git/

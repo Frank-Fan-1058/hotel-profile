@@ -66,6 +66,18 @@
 
 ## 安装 / 运行
 
+**方式一：npm / npx（一行跑起来）**
+
+```bash
+npx hotel-profile --mode list --limit 1        # 无需克隆，直接运行
+npx hotel-profile --mode profile --limit 10
+npm install -g hotel-profile                   # 或全局安装后用 hotel-profile 命令
+```
+
+npm 包内含 Python 驱动与配置模板；运行时需要本机有 Python 3.9+（可用 `HOTEL_PROFILE_PYTHON` 指定解释器）与 `bsk`。想改选择器或持久化配置，用方式二。
+
+**方式二：从仓库克隆（推荐长期使用）**
+
 ```bash
 git clone https://github.com/Frank-Fan-1058/hotel-profile.git && cd hotel-profile
 python -m pip install -r requirements.txt
