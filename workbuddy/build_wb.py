@@ -2,13 +2,12 @@
 import os, shutil, zipfile, json
 src = r'D:/DSH/home/skills/hotel-profile'
 base = r'D:/项目开发/hotel-profile-workbuddy'
-dst = os.path.join(base, 'hotel-profile')
+dst = os.path.join(base, 'pkg')
 shutil.rmtree(dst, ignore_errors=True)
 os.makedirs(os.path.join(dst, 'scripts'), exist_ok=True)
 os.makedirs(os.path.join(dst, 'references'), exist_ok=True)
 for f in ['hotel_scraper.py', 'hotel_profile.py', 'match_hotels.py', 'profile_extract.js', 'verify_probe.py']:
     shutil.copy2(os.path.join(src, 'scripts', f), os.path.join(dst, 'scripts', f))
-# 配置平铺进 scripts/（平台只允许两级目录：根目录/二级目录/文件）
 with open(os.path.join(src, 'config', 'settings.json'), encoding='utf-8') as f:
     cfg = json.load(f)
 cfg['base_url'] = ''
@@ -27,16 +26,17 @@ for f in ['data-schema.md', 'anti-detection.md', 'platform-page-map.md', 'instal
     p = os.path.join(src, 'references', f)
     if os.path.exists(p):
         shutil.copy2(p, os.path.join(dst, 'references', f))
+# 关键：zip 内不带外层壳目录，根 = 技能根，最多 根/二级/文件
 files = []
 for root, dirs, fs in os.walk(dst):
     dirs[:] = [d for d in dirs if d != '__pycache__']
     for f in fs:
-        files.append(os.path.relpath(os.path.join(root, f), base))
+        files.append(os.path.relpath(os.path.join(root, f), dst).replace(os.sep, '/'))
 zp = os.path.join(base, 'hotel-profile.zip')
 with zipfile.ZipFile(zp, 'w', zipfile.ZIP_DEFLATED) as z:
-    for rel in files:
-        z.write(os.path.join(base, rel), rel)
-maxd = max(r.replace(os.sep, '/').count('/') for r in files)
-print('PACK_FILES', len(files), 'MAX_DEPTH', maxd)
-for x in sorted(files): print(' ', x.replace(os.sep, '/'))
-print('ZIP', os.path.getsize(zp), 'bytes')
+    for rel in sorted(files):
+        z.write(os.path.join(dst, rel.replace('/', os.sep)), rel)
+maxd = max(r.count('/') for r in files)
+print('PACK_FILES', len(files), 'MAX_SLASH_DEPTH', maxd)
+for x in sorted(files): print(' ', x)
+print('ZIP_BYTES', os.path.getsize(zp))
