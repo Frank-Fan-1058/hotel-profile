@@ -1,2 +1,2 @@
 hotel_id,url,city_id,city,hotel_name,checkin,checkout,room_type,note
-,https://hotels.ctrip.com/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21,2,上海,上海酒店列表（占位示例）,2026-11-20,2026-11-21,,list 模式：整页酒店卡片一次抓；city=2 实测为上海；请复制为 config/hotels.csv 后改成自己的清单
+,{base_url}/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21,2,上海,上海酒店列表（占位示例）,2026-11-20,2026-11-21,,list 模式：整页酒店卡片一次抓；city=2 实测为上海；请复制为 config/hotels.csv 后改成自己的清单

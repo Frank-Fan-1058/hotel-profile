@@ -1,5 +1,5 @@
 {
-  "_note": "CSS 候选按出现顺序取第一个非空文本。list 模式在每个 .hotel-card 卡片内取；profile 模式在详情页取全档案。2026-11-15 真实登录态实测校准，见 references/ctrip-page-map.md。改版后请重跑 --calibrate 再调。价格用 .room-price .sale / .delete，不要用宽泛 [class*=price]（会命中 ¥0-¥200 筛选栏）。",
+  "_note": "CSS 候选按出现顺序取第一个非空文本。list 模式在每个 .hotel-card 卡片内取；profile 模式在详情页取全档案。2026-11-15 真实登录态实测校准，见 references/platform-page-map.md。改版后请重跑 --calibrate 再调。价格用 .room-price .sale / .delete，不要用宽泛 [class*=price]（会命中 ¥0-¥200 筛选栏）。",
   "list_container": ".hotel-card",
   "detail_container": null,
   "detail": {
@@ -9,7 +9,7 @@
     "review_count": ["[class*=comment-num]", "[class*=reviewCount]", "[class*=comment]"],
     "address": ["[class*=hotel-position]", "[class*=address]", "[itemprop=address]"],
     "price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
-    "ctrip_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "platform_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
     "list_price": [".room-price .delete", ".room-price del", "[class*=originalPrice]", "del", "s"],
     "room_type": ["[class*=roomName]", "[class*=roomType]", "[class*=room-name]"],
     "bed_type": ["[class*=bedType]", "[class*=bed]"],
@@ -26,13 +26,13 @@
     "review_count": ["[class*=comment-num]", ".comment-num", "[class*=comment]"],
     "address": ["[class*=hotel-position]", ".hotel-position", "[class*=address]"],
     "price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
-    "ctrip_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
+    "platform_price": [".room-price .sale", ".price-line .sale", "[class*=salePrice]"],
     "list_price": [".room-price .delete", ".room-price del", "[class*=originalPrice]", "del", "s"],
     "promo_tags": [".hotel-tag", ".promotion-tag", "[class*=tag]"],
     "cancellation": [".hotel-tag", "[class*=cancel]"]
   },
   "profile": {
-    "_note": "详情页全档案，2026-11-15 在 hotelId=15018492（上海徐家汇禧玥酒店）真实登录态实测。one=取首段文本；longest=取最长块；all=去重列表（rooms 保留换行供 Python 解析）。携程改版后重跑 --calibrate 再调。",
+    "_note": "详情页全档案，2026-11-15 在 hotelId=15018492（上海徐家汇禧玥酒店）真实登录态实测。one=取首段文本；longest=取最长块；all=去重列表（rooms 保留换行供 Python 解析）。目标站点改版后重跑 --calibrate 再调。",
     "one": {
       "hotel_name": ["[class*=hotelNameRow_hotelOverview_name]", "h1", "[itemprop=name]"],
       "address": ["[class*=hotelAddre]", "[itemprop=address]"],

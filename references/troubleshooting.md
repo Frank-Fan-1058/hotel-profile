@@ -11,7 +11,7 @@ bsk evaluate "<expr>" --session <SID> --context <context_id> --json
 
 - 返回里字段是 `context_id`（**不是** `context`）。
 - 一个 `context_id` 只授权**一个**动作；动作后要重新 sync。
-- 携程 `risk_Iframe_t_` 会抖动，常见 `The action's observed content changed` / `A page frame changed` / `ref @eN unknown` → 脚本已用 `--settle` + 最多 8 次重试 + `--depends-on` 吸收。
+- 目标站点 `risk_Iframe_t_` 会抖动，常见 `The action's observed content changed` / `A page frame changed` / `ref @eN unknown` → 脚本已用 `--settle` + 最多 8 次重试 + `--depends-on` 吸收。
 - **不要用 `@eN` ref 作长期选择器**（会变），用 CSS 选择器。
 
 脚本的 `Bsk.action()` 已封装这套循环，不要绕过它直接调 `bsk evaluate`。
@@ -41,9 +41,9 @@ BSK_AUTO_START=0 bsk daemon start --foreground
 
 ## 5. 抓不到价格 / `price_num` 全是 null
 
-最常见：**没登录携程**。列表页显示「登录以查看会员价」，`room-price`/`price-line` 空。在真实 Edge/Chromium 里登录携程后重跑。交互运行会自动 `request-help`；后台定时加 `--no-handoff`，状态记 `needs_login`。
+最常见：**没登录目标站点**。列表页显示「登录以查看会员价」，`room-price`/`price-line` 空。在真实 Edge/Chromium 里登录目标站点后重跑。交互运行会自动 `request-help`；后台定时加 `--no-handoff`，状态记 `needs_login`。
 
-其次：携程改版，选择器失效。跑 `--calibrate <url>` 看 `calibration.json` 的 `class_hints`，调 `config/selectors.json`。
+其次：目标站点改版，选择器失效。跑 `--calibrate <url>` 看 `calibration.json` 的 `class_hints`，调 `config/selectors.json`。
 
 ## 6. 抓到 `¥0 - ¥200` 这种假价格
 

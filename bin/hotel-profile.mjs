@@ -2,7 +2,7 @@
 /**
  * hotel-profile CLI（npm 包入口）
  *
- * 只是 Python 驱动的薄包装：把参数原样转给 scripts/ctrip_hotel.py，
+ * 只是 Python 驱动的薄包装：把参数原样转给 scripts/hotel_scraper.py，
  * 并保证 cwd 落在包根目录，使 config/ 与 output/ 的相对路径生效。
  *
  * 用法：
@@ -17,7 +17,7 @@ import { existsSync } from "node:fs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const script = join(root, "scripts", "ctrip_hotel.py");
+const script = join(root, "scripts", "hotel_scraper.py");
 
 const CANDIDATES = [
   process.env.HOTEL_PROFILE_PYTHON,

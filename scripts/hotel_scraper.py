@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-携程酒店批量取价 / 参数采集（拟人化、抗反爬）。
+酒店价格与全档案批量采集（拟人化、抗反爬）。
 
 红线：只用真实已登录浏览器(bsk CLI)、只读渲染 DOM、不重放 API、不 headless、
 遇验证码/登录墙交真人、拟人节奏、增量写盘 + 断点续跑。
 
 用法：
-  python ctrip_hotel.py --probe
-  python ctrip_hotel.py --calibrate <url>
-  python ctrip_hotel.py --mode list [--limit N]
-  python ctrip_hotel.py --mode profile [--limit N] [--from-list URL] [--no-handoff]
-  python ctrip_hotel.py --mode discover --from-list URL
+  python hotel_scraper.py --probe
+  python hotel_scraper.py --calibrate <url>
+  python hotel_scraper.py --mode list [--limit N]
+  python hotel_scraper.py --mode profile [--limit N] [--from-list URL] [--no-handoff]
+  python hotel_scraper.py --mode discover --from-list URL
 """
 from __future__ import annotations
 import argparse, csv, json, os, random, re, shutil, subprocess, sys, time, datetime
@@ -173,6 +173,19 @@ class Bsk:
     def wheel(self, dy):
         return self.action("wheel", ["--delta-y", str(int(dy))])
 
+    def fill(self, selector, value):
+        return self.action("fill", ["--selector", selector, "--value", str(value)])
+
+    def click(self, selector):
+        return self.action("click", ["--selector", selector])
+
+    def press(self, key, selector=None):
+        # bsk press <KEY> 的键是位置参数，不是 --key
+        a = [str(key)]
+        if selector:
+            a += ["--selector", selector]
+        return self.action("press", a)
+
     def handoff(self, prompt, timeout_s=300):
         ctx = self.sync()
         a = ["request-help", "--session", self.sid, "--prompt", prompt,
@@ -257,7 +270,7 @@ def to_num(s):
 def normalise(raw, keys, base):
     row = dict(base)
     for k in keys: row[k] = raw.get(k)
-    row["price_num"] = to_price(raw.get("ctrip_price") or raw.get("price"))
+    row["price_num"] = to_price(raw.get("sale_price") or raw.get("price"))
     row["rating_num"] = None
     m = re.search(r"(\d(?:\.\d)?)", str(raw.get("rating") or ""))
     if m: row["rating_num"] = float(m.group(1))
@@ -273,7 +286,8 @@ def build_url(row, cfg, mode):
     ci = fmt_date(row.get("checkin") or cfg.get("checkin"), cfg)
     co = fmt_date(row.get("checkout") or cfg.get("checkout"), cfg)
     tpl = cfg.get("detail_url_template") if mode == "detail" else cfg.get("list_url_template")
-    return (tpl.replace("{hotel_id}", str(row.get("hotel_id") or row.get("ctrip_hotel_id") or ""))
+    tpl = (tpl or "").replace("{base_url}", cfg.get("base_url") or "")
+    return (tpl.replace("{hotel_id}", str(row.get("hotel_id") or row.get("platform_hotel_id") or ""))
                .replace("{city_id}", str(row.get("city_id") or "2"))
                .replace("{checkin}", ci).replace("{checkout}", co))
 
@@ -283,10 +297,10 @@ def read_hotels(cfg):
     with open(p, "r", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
-COLS = ["capture_time", "mode", "city", "hotel_name", "ctrip_hotel_id", "star",
+COLS = ["capture_time", "mode", "city", "hotel_name", "platform_hotel_id", "star",
         "rating", "rating_num", "review_count", "review_num", "address",
         "checkin", "checkout", "nights", "guests_rooms", "room_type", "bed_type",
-        "area", "breakfast", "cancellation", "price", "ctrip_price", "list_price",
+        "area", "breakfast", "cancellation", "price", "sale_price", "list_price",
         "price_num", "currency", "tax_included", "promo_tags", "availability",
         "source_url", "status", "notes"]
 
@@ -310,7 +324,10 @@ def human_scroll(b, pace):
 # ---------- 模式 ----------
 def do_probe(b, cfg):
     log("连通性 / 协作协议自检")
-    b.navigate("https://hotels.ctrip.com/")
+    base = (cfg.get("base_url") or "").rstrip("/")
+    if not base:
+        log("未指定目标站点，自检改为只验证浏览器会话可用（不打开网页）")
+    b.navigate(cfg.get("probe_url") or (base + "/" if base else "about:blank"))
     jitter(cfg.get("pace", {}).get("after_navigate", [1.5, 3.0]))
     r = b.evaluate("(function(){return {title:document.title,url:location.href,bodyLen:(document.body.innerText||'').length}})()")
     v = r.get("value") if isinstance(r.get("value"), dict) else r
@@ -340,8 +357,8 @@ def do_batch(b, cfg, sel, args):
     container = sel.get(mode + "_container")
     out_dir = output_dir(cfg)
     os.makedirs(out_dir, exist_ok=True)
-    csv_p = os.path.join(out_dir, "ctrip_prices.csv")
-    jsonl_p = os.path.join(out_dir, "ctrip_prices.jsonl")
+    csv_p = os.path.join(out_dir, "sale_prices.csv")
+    jsonl_p = os.path.join(out_dir, "sale_prices.jsonl")
     prog_p = os.path.join(out_dir, "progress.json")
     new = not os.path.exists(csv_p) or os.path.getsize(csv_p) == 0
     fc = open(csv_p, "a", newline="", encoding="utf-8")
@@ -371,7 +388,7 @@ def do_batch(b, cfg, sel, args):
             log("(%d/%d) %s" % (n + 1, min(cap, len(order)), row.get("hotel_name") or row.get("hotel_id") or url))
             base = {"capture_time": stamp(), "mode": mode, "city": row.get("city", ""),
                     "hotel_name": row.get("hotel_name", ""),
-                    "ctrip_hotel_id": row.get("hotel_id") or row.get("ctrip_hotel_id") or "",
+                    "platform_hotel_id": row.get("hotel_id") or row.get("platform_hotel_id") or "",
                     "checkin": row.get("checkin") or cfg.get("checkin", ""),
                     "checkout": row.get("checkout") or cfg.get("checkout", ""),
                     "guests_rooms": cfg.get("guests_rooms", "1间,2成人"),
@@ -388,7 +405,7 @@ def do_batch(b, cfg, sel, args):
                 hit = blocked(v)
                 if hit and allow_handoff:
                     log("检测到 %s，交真人处理..." % hit)
-                    b.handoff("携程需要登录账号或完成安全验证才能看到价格。请在真实浏览器里登录/验证，完成后回到此任务。", cfg.get("handoff_timeout", 300))
+                    b.handoff("目标站点需要登录账号或完成安全验证才能看到价格。请在真实浏览器里登录/验证，完成后回到此任务。", cfg.get("handoff_timeout", 300))
                     jitter([1.5, 3.0])
                     r = b.evaluate(expr, depends=depends)
                     v = r.get("value") if isinstance(r.get("value"), dict) else {}
@@ -425,13 +442,13 @@ def do_batch(b, cfg, sel, args):
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill
-            wb = Workbook(); ws = wb.active; ws.title = "携程酒店价格"
+            wb = Workbook(); ws = wb.active; ws.title = "酒店价格"
             with open(csv_p, "r", encoding="utf-8") as f:
                 for rr in csv.reader(f): ws.append(rr)
             for c in ws[1]:
                 c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="2F5496")
             ws.freeze_panes = "A2"
-            wb.save(os.path.join(out_dir, "ctrip_prices.xlsx"))
+            wb.save(os.path.join(out_dir, "sale_prices.xlsx"))
         except Exception as e:
             log("xlsx 生成失败(不影响 CSV):", repr(e))
     return n, csv_p
@@ -440,18 +457,33 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--calibrate")
-    ap.add_argument("--mode", choices=["list", "detail", "profile", "discover"],
+    ap.add_argument("--mode", choices=["list", "detail", "profile", "discover", "match"],
                     help="list=列表页价格快照; profile/detail=详情页全档案; discover=从列表页提取 hotelId")
     ap.add_argument("--from-list", help="profile 模式：先从该列表页 URL 发现 hotelId 再逐家取全档案")
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--base-url", help="目标站点根地址，覆盖 config 里的 base_url")
+    ap.add_argument("--input", help="match 模式：用户导入的酒店清单（csv / xlsx）")
+    ap.add_argument("--no-pool", action="store_true", help="match 模式：不滚动收集候选池，改为按名称逐个搜索")
+    ap.add_argument("--name-column", help="match 模式：清单里酒店名称所在的列名（不填则自动识别）")
     ap.add_argument("--no-handoff", action="store_true", help="后台定时跑：遇登录/验证码只记状态不阻塞")
     ap.add_argument("--settings")
     a = ap.parse_args()
     cfg = load_settings(a.settings or "settings.json")
+    if getattr(a, "base_url", None):
+        cfg["base_url"] = a.base_url.rstrip("/")
     sel = load_json("selectors.json")
+    if not (cfg.get("base_url") or "").strip():
+        log("未指定目标站点。两种做法任选其一：")
+        log("  1) 命令行加参数：--base-url <站点根地址>，例如 --base-url https://example.com")
+        log("  2) 写进配置：scripts/config/settings.json 的 base_url")
+        log("（本技能不绑定具体站点，站点地址由使用者提供）")
+        return 2
+    if a.mode == "match":
+        import match_hotels
+        return match_hotels.run_match(cfg, sel, a)
     if a.mode in ("profile", "detail", "discover"):
-        import ctrip_profile
-        return ctrip_profile.run(cfg, sel, a)
+        import hotel_profile
+        return hotel_profile.run(cfg, sel, a)
     b = Bsk(cfg.get("bsk_cli"), cfg)
     sid = b.start(cfg.get("browser_instance") or None)
     log("bsk session", sid)

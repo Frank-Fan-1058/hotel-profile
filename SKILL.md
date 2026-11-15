@@ -1,6 +1,6 @@
 ---
 name: hotel-profile
-description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tencent/BrowserSkill）模拟真人操作，批量采集酒店的价格与全档案信息（房型/床型/面积/会议室/泳池/健身房/餐厅/停车场/周边配套POI/地铁/酒店政策/简介等）。当用户要采集、监控、比价酒店价格，或要批量获取酒店设施与周边参数，或要配置定时批量取价时使用。当前默认平台适配器为 ctrip.com，平台相关配置集中在 config/selectors.json 与 URL 模板，可替换。抗反爬：复用真实登录态与浏览器指纹、只读渲染 DOM、拟人节奏、遇验证码或登录墙转人工。只强依赖独立开源的 bsk CLI，不依赖 DSH，可单独发布到 GitHub。
+description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tencent/BrowserSkill）模拟真人操作，批量采集酒店的价格与全档案信息（房型/床型/面积/会议室/泳池/健身房/餐厅/停车场/周边配套POI/地铁/酒店政策/简介等）。当用户要采集、监控、比价酒店价格，或要批量获取酒店设施与周边参数，或要配置定时批量取价时使用。具体站点地址与选择器集中在 config/settings.json 的 base_url 与 config/selectors.json，可替换，能力不绑定单一站点。抗反爬：复用真实登录态与浏览器指纹、只读渲染 DOM、拟人节奏、遇验证码或登录墙转人工。只强依赖独立开源的 bsk CLI，不依赖 DSH，可单独发布到 GitHub。
 ---
 
 # 酒店数据采集（hotel-profile）
@@ -15,9 +15,9 @@ description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tence
 
 | 层 | 谁提供 | 随本仓库发布 |
 | --- | --- | --- |
-| 浏览器 + 携程登录态 | 用户自己的 Chrome/Edge | 否 |
+| 浏览器 + 目标站点登录态 | 用户自己的 Chrome/Edge | 否 |
 | `bsk` CLI/daemon + 扩展 | [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill)（独立开源） | 否，自行安装 |
-| 携程页面渲染后 DOM | 携程 | 否 |
+| 目标站点页面渲染后 DOM | 目标站点 | 否 |
 | 本技能：SOP、CSS 选择器、Python 驱动、配置模板 | 本仓库 | 是（MIT） |
 
 把整个目录拷到任何装了 `bsk` 的机器，用 `python` 就能跑。详见 [[references/dependencies.md]]。
@@ -27,11 +27,11 @@ description: 在本机真实已登录的 Edge/Chromium 里，用 bsk CLI（Tence
 - 要批量看「对应酒店」的最新价格、评分、点评数、位置；
 - 要更全的酒店信息：房型/床型/面积/楼层、会议室、泳池、健身房、餐厅、停车场、SPA、接送机、酒吧、周边配套 POI 与距离、地铁站、酒店政策、简介；
 - 要定时重复取价形成价格快照/历史；
-- 平台反爬强（当前默认 ctrip.com），直连 API 或 headless 会被拦，需要模拟真人行为。
+- 平台反爬强（当前默认 platform.com），直连 API 或 headless 会被拦，需要模拟真人行为。
 
 ## 前置条件（缺一不可）
 
-1. **真实浏览器已登录目标平台账号**（当前默认 ctrip.com）：未登录时列表页只显示「登录以查看会员价」、价格为空。技能检测到会调 `request-help` 让真人登录。
+1. **真实浏览器已登录目标平台账号**（当前默认 platform.com）：未登录时列表页只显示「登录以查看会员价」、价格为空。技能检测到会调 `request-help` 让真人登录。
 2. **`bsk` CLI + 扩展 + daemon**：自行安装 [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill)。
    - `bsk` 不在 PATH 时：设环境变量 `BSK_CLI`，或在 `config/settings.json` 写 `bsk_cli` 绝对路径。
    - 普通终端里 `bsk` 会自动拉起 daemon；**DSH 桌面宿主**禁止 Job Object breakaway，需手动常驻：`BSK_AUTO_START=0 bsk daemon start --foreground`，客户端同样带 `BSK_AUTO_START=0`（脚本已内置）。
@@ -59,10 +59,10 @@ cp config/hotels.example.csv config/hotels.csv
 cp config/hotels.profile.example.csv config/hotels.profile.csv
 
 python scripts/verify_probe.py                     # 自检：bsk 连通 + 协作协议
-python scripts/ctrip_hotel.py --calibrate "https://hotels.ctrip.com/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21"
-python scripts/ctrip_hotel.py --mode list --limit 1
-python scripts/ctrip_hotel.py --mode profile --limit 10
-python scripts/ctrip_hotel.py --mode discover --from-list "<列表页URL>"
+python scripts/hotel_scraper.py --calibrate "{base_url}/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21"
+python scripts/hotel_scraper.py --mode list --limit 1
+python scripts/hotel_scraper.py --mode profile --limit 10
+python scripts/hotel_scraper.py --mode discover --from-list "<列表页URL>"
 python -m unittest discover -s tests -v            # 离线解析测试，不需浏览器
 ```
 
@@ -93,21 +93,21 @@ Windows 没有 `python` 时用 `py -3` 或 Python 绝对路径。要作为 DSH �
 ## 输出（默认 ./output，相对仓库根）
 
 **价格快照（list）**
-- `ctrip_prices.csv` / `.jsonl` / `.xlsx` — 追加写，一行一条（一页多行）
+- `prices.csv` / `.jsonl` / `.xlsx` — 追加写，一行一条（一页多行）
 - `progress.json` — 已完成 key，断点续跑
 
 **全档案（profile）**
-- `ctrip_profiles.csv` — 一家一行：基本信息 + 设施布尔标记 + 周边汇总 + 政策 + 简介
-- `ctrip_rooms.csv` — 一个房型一行：房型名/床型/面积/楼层/窗/烟/WiFi/价/早餐/取消/余量
-- `ctrip_nearby.csv` — 一个周边 POI 一行：类别/名称/距离
-- `ctrip_hotel_full.xlsx` — 上面三张表各一个 sheet（带筛选与冻结表头）
+- `hotel_profiles.csv` — 一家一行：基本信息 + 设施布尔标记 + 周边汇总 + 政策 + 简介
+- `hotel_rooms.csv` — 一个房型一行：房型名/床型/面积/楼层/窗/烟/WiFi/价/早餐/取消/余量
+- `hotel_nearby.csv` — 一个周边 POI 一行：类别/名称/距离
+- `hotel_report.xlsx` — 上面三张表各一个 sheet（带筛选与冻结表头）
 - `progress_profile.json` / `discovered_hotels.csv` / `calibration.json`
 
 字段口径见 [[references/data-schema.md]]。`status`：`ok` / `partial` / `needs_login` / `blocked` / `failed` / `error`。
 
 ## 选择器校准（重要）
 
-`config/selectors.json` 的类名来自 **2026-11-15 真实登录态实测**（见 [[references/ctrip-page-map.md]]），不是保证。携程改版后：
+`config/selectors.json` 的类名来自 **2026-11-15 真实登录态实测**（见 [[references/platform-page-map.md]]），不是保证。目标站点改版后：
 
 1. 跑 `--calibrate <真实URL>`；
 2. 看 `output/calibration.json` 的 `class_hints`；
@@ -143,12 +143,12 @@ hotel-profile/
 ├─ references/
 │  ├─ dependencies.md      # 依赖关系 / 移植 / 发布
 │  ├─ anti-detection.md    # 拟人化 / 红线
-│  ├─ ctrip-page-map.md    # 实测 URL 与 CSS 类（列表页 + 详情页）
+│  ├─ platform-page-map.md    # 实测 URL 与 CSS 类（列表页 + 详情页）
 │  ├─ data-schema.md       # 字段口径（价格快照 + 全档案三张表）
 │  └─ troubleshooting.md   # bsk / 协作协议 / 登录墙
 ├─ scripts/
-│  ├─ ctrip_hotel.py       # 主驱动（list / 自检 / 校准 / 路由 profile）
-│  ├─ ctrip_profile.py     # 全档案采集（profile / discover）
+│  ├─ hotel_scraper.py       # 主驱动（list / 自检 / 校准 / 路由 profile）
+│  ├─ hotel_profile.py     # 全档案采集（profile / discover）
 │  ├─ profile_extract.js   # 详情页 DOM 抽取表达式
 │  └─ verify_probe.py      # 自检入口
 └─ config/

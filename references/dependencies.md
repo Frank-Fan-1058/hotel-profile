@@ -2,7 +2,7 @@
 
 ## 结论
 
-**只有一个强依赖：`bsk` CLI（Tencent/BrowserSkill）＋ 它的浏览器扩展 ＋ 一个已登录携程的 Chromium/Edge。**
+**只有一个强依赖：`bsk` CLI（Tencent/BrowserSkill）＋ 它的浏览器扩展 ＋ 一个已登录目标站点的 Chromium/Edge。**
 
 本技能**不是 DSH 插件**，不依赖 DSH 运行时、不依赖注入式 `bsk_*` 工具、不打包 BrowserSkill 本体。它只是「Agent Skill（`SKILL.md`）＋ 一层薄 Python 驱动」，通过**命令行**调用 `bsk`。把整个目录拷到任何装有 `bsk` 的机器，用 `python` 就能跑。
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 浏览器：真实 profile / 登录态 / TLS 指纹 / 扩展列表 | 用户自己的 Chrome/Edge | 否 |
 | BrowserSkill 扩展 + `bsk` CLI + daemon | [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill)（独立开源项目） | 否，用户自行安装 |
-| 携程页面（列表页 / 详情页渲染后 DOM） | 携程 | 否 |
+| 目标站点页面（列表页 / 详情页渲染后 DOM） | 目标站点 | 否 |
 | 本技能：SOP、CSS 选择器、Python 驱动、配置模板 | 本仓库 | 是（MIT） |
 
 ## 用到的 bsk 命令面
@@ -31,7 +31,7 @@
 ## 版本兼容
 
 - 实测：bsk 0.4.0，daemon 协议 1.7 / 扩展 1.8（存在 version skew，不影响 CLI 路径）。
-- 携程页面注入 `risk_Iframe_t_` 风控 iframe 会让 `@eN` ref 抖动，所以脚本**只用 CSS 选择器**，不用 ref。
+- 目标站点页面注入 `risk_Iframe_t_` 风控 iframe 会让 `@eN` ref 抖动，所以脚本**只用 CSS 选择器**，不用 ref。
 - 上游改 CLI 参数：先跑 `--probe` 定位；页面改版：跑 `--calibrate` 看 `class_hints` 再调 `selectors.json`。
 
 ## 可选依赖
@@ -41,9 +41,9 @@
 ## 不依赖什么
 
 - DSH / `~/.dsh` / 任何 DSH 插件或注入工具
-- Playwright / Selenium / requests / curl 直连携程接口
+- Playwright / Selenium / requests / curl 直连目标站点接口
 - 账号密码、cookie 导出、签名伪造、验证码绕过、headless
-- 任何携程内部 JSON API（只读渲染后 DOM）
+- 任何目标站点内部 JSON API（只读渲染后 DOM）
 
 ## 与 DSH 有关的两处（可选，不影响移植）
 

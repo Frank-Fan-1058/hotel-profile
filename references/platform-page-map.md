@@ -1,15 +1,15 @@
-# 携程页面地图（2026-11-15 实测，仅供校准参考）
+# 目标站点页面地图（2026-11-15 实测，仅供校准参考）
 
-> 携程会改版。以下类名来自真实 `--calibrate` 与真实详情页 DOM 探针，不是稳定契约。
+> 目标站点会改版。以下类名来自真实 `--calibrate` 与真实详情页 DOM 探针，不是稳定契约。
 > 校准文件：`output/calibration.json`（`class_hints` / `price_like` / `body`）。
 
 ## URL
 
 | 用途 | 模板 | 状态 |
 | --- | --- | --- |
-| 首页 | `https://hotels.ctrip.com/` | 实测可开 |
-| 城市列表页 | `https://hotels.ctrip.com/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21` | **实测**：9346 家，无风控 |
-| 详情页 | `https://hotels.ctrip.com/hotels/detail/?hotelId=15018492&checkin=2026/11/20&checkout=2026/11/21` | **实测**：全档案 DOM |
+| 首页 | `{base_url}/` | 实测可开 |
+| 城市列表页 | `{base_url}/hotels/list?city=2&checkin=2026/11/20&checkout=2026/11/21` | **实测**：9346 家，无风控 |
+| 详情页 | `{base_url}/hotels/detail/?hotelId=15018492&checkin=2026/11/20&checkout=2026/11/21` | **实测**：全档案 DOM |
 
 - 日期分隔符是 `/`（settings 里 `date_sep: "/"`）；`-` 要转换。
 - 实测 `city=2` → **上海**（不是北京）。其他 city_id 请自行校准。
@@ -41,7 +41,7 @@
 | `.sale` | **实付/成交价** | ¥980 / ¥837 / ¥919 |
 | `.price-suffix` | 后缀 | 起 |
 
-- **取价铁律**：`ctrip_price` 取 `.room-price .sale`，`list_price` 取 `.delete`；`price_num` 正则锚定 `¥`（`[¥￥]\s*数字`），杜绝把「优惠174」「连续54位住客好评」误当价格。
+- **取价铁律**：`sale_price` 取 `.room-price .sale`，`list_price` 取 `.delete`；`price_num` 正则锚定 `¥`（`[¥￥]\s*数字`），杜绝把「优惠174」「连续54位住客好评」误当价格。
 - 实测卡：禧玥 ¥837 起｜云和夜泊 ¥1,154→¥980（优惠174）｜筑格 ¥919 起｜城际徐家汇 ¥775 起。
 - 未登录：卡片显示「**登录以查看会员价**」，`room-price` 为空，`price_num=null`、`status=needs_login`。
 
@@ -68,4 +68,4 @@
 
 ## bsk 协作协议（0.4.0）
 
-`bsk` CLI 对 DOM 动作强制 `cooperate sync` → 拿 `context_id`（不是 `context`）→ **一个动作** → 再 sync。携程 risk iframe 频繁报「content/frame changed」，脚本用 `--settle` + 最多 8 次重试吸收。全档案模式**每家用独立 session**（导航/滚动多，复用同一 session 连续 navigate 会触发协作拒绝）。详见 troubleshooting。
+`bsk` CLI 对 DOM 动作强制 `cooperate sync` → 拿 `context_id`（不是 `context`）→ **一个动作** → 再 sync。目标站点 risk iframe 频繁报「content/frame changed」，脚本用 `--settle` + 最多 8 次重试吸收。全档案模式**每家用独立 session**（导航/滚动多，复用同一 session 连续 navigate 会触发协作拒绝）。详见 troubleshooting。

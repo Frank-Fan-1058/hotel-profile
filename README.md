@@ -8,7 +8,7 @@
 
 > 示意图：界面与数据均为合成的通用示例，不含任何真实酒店、账号或个人数据。
 
-当前默认平台适配器为 `ctrip.com`；选择器与 URL 模板集中在 `config/`，可换成其它平台，能力本身不绑定单一站点。
+当前默认平台适配器为 `platform.com`；选择器与 URL 模板集中在 `config/`，可换成其它平台，能力本身不绑定单一站点。
 
 ---
 
@@ -85,9 +85,9 @@ cp config/hotels.example.csv config/hotels.csv
 cp config/hotels.profile.example.csv config/hotels.profile.csv
 
 python scripts/verify_probe.py                 # 自检：bsk 连通 + 协作协议
-python scripts/ctrip_hotel.py --mode list --limit 1
-python scripts/ctrip_hotel.py --mode profile --limit 10
-python scripts/ctrip_hotel.py --mode discover --from-list "<列表页URL>"
+python scripts/hotel_scraper.py --mode list --limit 1
+python scripts/hotel_scraper.py --mode profile --limit 10
+python scripts/hotel_scraper.py --mode discover --from-list "<列表页URL>"
 python -m unittest discover -s tests -v       # 离线解析测试，不需浏览器
 ```
 
@@ -95,8 +95,8 @@ python -m unittest discover -s tests -v       # 离线解析测试，不需浏�
 
 | 模式 | 做什么 | 输出 |
 | --- | --- | --- |
-| `list` | 列表页一次抓整页卡片 | `ctrip_prices.csv` / `.jsonl` / `.xlsx` |
-| `profile` | 逐家详情页取全档案 | `ctrip_profiles.csv` + `ctrip_rooms.csv` + `ctrip_nearby.csv` + `ctrip_hotel_full.xlsx` |
+| `list` | 列表页一次抓整页卡片 | `prices.csv` / `.jsonl` / `.xlsx` |
+| `profile` | 逐家详情页取全档案 | `hotel_profiles.csv` + `hotel_rooms.csv` + `hotel_nearby.csv` + `hotel_report.xlsx` |
 | `discover` | 从列表页自动发现酒店 ID | `discovered_hotels.csv` |
 
 输出默认在 `./output`，**追加写 + 断点续跑**（`progress*.json` 记已完成），多次运行自然形成价格快照历史。

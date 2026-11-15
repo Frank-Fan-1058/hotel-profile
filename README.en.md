@@ -8,7 +8,7 @@ Collect **hotel prices and full profiles** at scale by driving your **real, alre
 
 > Illustrations: synthetic, generic placeholder content. No real hotels, accounts or personal data.
 
-The default platform adapter targets `ctrip.com`; selectors and URL templates live in `config/` and can be swapped for other platforms — the capability itself is not tied to one site.
+The default platform adapter targets `platform.com`; selectors and URL templates live in `config/` and can be swapped for other platforms — the capability itself is not tied to one site.
 
 ---
 
@@ -85,9 +85,9 @@ cp config/hotels.example.csv config/hotels.csv
 cp config/hotels.profile.example.csv config/hotels.profile.csv
 
 python scripts/verify_probe.py                 # connectivity + cooperation protocol self-check
-python scripts/ctrip_hotel.py --mode list --limit 1
-python scripts/ctrip_hotel.py --mode profile --limit 10
-python scripts/ctrip_hotel.py --mode discover --from-list "<list page URL>"
+python scripts/hotel_scraper.py --mode list --limit 1
+python scripts/hotel_scraper.py --mode profile --limit 10
+python scripts/hotel_scraper.py --mode discover --from-list "<list page URL>"
 python -m unittest discover -s tests -v       # offline parser tests, no browser needed
 ```
 
@@ -95,8 +95,8 @@ python -m unittest discover -s tests -v       # offline parser tests, no browser
 
 | Mode | What it does | Output |
 | --- | --- | --- |
-| `list` | Scrape all cards on a list page in one pass | `ctrip_prices.csv` / `.jsonl` / `.xlsx` |
-| `profile` | Open each hotel detail page for the full profile | `ctrip_profiles.csv` + `ctrip_rooms.csv` + `ctrip_nearby.csv` + `ctrip_hotel_full.xlsx` |
+| `list` | Scrape all cards on a list page in one pass | `prices.csv` / `.jsonl` / `.xlsx` |
+| `profile` | Open each hotel detail page for the full profile | `hotel_profiles.csv` + `hotel_rooms.csv` + `hotel_nearby.csv` + `hotel_report.xlsx` |
 | `discover` | Auto-discover hotel IDs from a list page | `discovered_hotels.csv` |
 
 Output goes to `./output` by default, **append-only with resume** (`progress*.json` tracks completed items), so repeated runs naturally build a price history.

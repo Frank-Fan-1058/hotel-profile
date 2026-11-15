@@ -1,34 +1,34 @@
 # -*- coding: utf-8 -*-
 """
-携程酒店全档案采集：房型 / 周边配套 / 设施(会议室·泳池·健身房…) / 政策 / 基本信息。
+酒店全档案采集：房型 / 周边配套 / 设施(会议室·泳池·健身房…) / 政策 / 基本信息。
 
 --mode profile   逐家打开详情页，输出「酒店概览 + 房型 + 周边配套」三张表
 --mode discover  从列表页提取 hotelId 清单，供批量使用
 
-复用 ctrip_hotel 的 Bsk 客户端、拟人节奏、登录墙判定与增量写盘。
+复用 hotel_scraper 的 Bsk 客户端、拟人节奏、登录墙判定与增量写盘。
 每家酒店用独立 bsk 会话（抗反爬也更像真人逐页打开）。
 """
 from __future__ import annotations
 import os, sys, re, json, csv, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import ctrip_hotel as C
+import hotel_scraper as C
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CFG = C.CFG  # 与主驱动一致：<root>/config 或 <root>/scripts/config
 JS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profile_extract.js")
 
-PROFILE_COLS = ["capture_time", "ctrip_hotel_id", "hotel_name", "city", "address", "phone",
+PROFILE_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "city", "address", "phone",
                 "rating", "review_count", "room_type_count", "facilities",
                 "has_meeting_room", "has_pool", "has_gym", "has_parking", "has_restaurant",
                 "has_spa", "has_airport_shuttle", "has_wifi", "has_bar",
                 "nearby_summary", "nearby_poi_count", "metro", "intro", "highlights",
                 "policy", "breakfast_policy", "checkin", "checkout", "source_url", "status", "notes"]
 
-ROOM_COLS = ["capture_time", "ctrip_hotel_id", "hotel_name", "room_name", "bed_type",
+ROOM_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "room_name", "bed_type",
              "area_sqm", "floor", "window", "smoke", "wifi", "price_num", "price_text",
              "breakfast", "cancellation", "availability", "checkin", "checkout"]
 
-NEARBY_COLS = ["capture_time", "ctrip_hotel_id", "hotel_name", "category", "poi_name", "distance"]
+NEARBY_COLS = ["capture_time", "platform_hotel_id", "hotel_name", "category", "poi_name", "distance"]
 
 FLAG_KW = {
     "has_meeting_room": ["会议室", "会议厅", "宴会厅", "会议空间", "商务中心"],
@@ -185,7 +185,7 @@ def write_xlsx(out_dir):
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
         wb = Workbook(); wb.remove(wb.active)
-        for sheet, fn in [("酒店概览", "ctrip_profiles.csv"), ("房型", "ctrip_rooms.csv"), ("周边配套", "ctrip_nearby.csv")]:
+        for sheet, fn in [("酒店概览", "hotel_profiles.csv"), ("房型", "hotel_rooms.csv"), ("周边配套", "hotel_nearby.csv")]:
             ws = wb.create_sheet(sheet)
             p = os.path.join(out_dir, fn)
             if os.path.exists(p):
@@ -197,7 +197,7 @@ def write_xlsx(out_dir):
                 c.alignment = Alignment(vertical="center")
             ws.freeze_panes = "A2"
             ws.auto_filter.ref = ws.dimensions
-        wb.save(os.path.join(out_dir, "ctrip_hotel_full.xlsx"))
+        wb.save(os.path.join(out_dir, "hotel_report.xlsx"))
     except Exception as e:
         C.log("xlsx 生成失败(不影响 CSV):", repr(e))
 
@@ -257,9 +257,9 @@ def run(cfg, sel, a):
         C.log("没有可采集的酒店：请在 config/%s 填 hotel_id，或用 --from-list <列表页URL>" % cfg.get("profile_hotels_csv", "hotels.profile.csv"))
         return 1
 
-    sp = Sink(os.path.join(out_dir, "ctrip_profiles.csv"), PROFILE_COLS)
-    sr = Sink(os.path.join(out_dir, "ctrip_rooms.csv"), ROOM_COLS)
-    sn = Sink(os.path.join(out_dir, "ctrip_nearby.csv"), NEARBY_COLS)
+    sp = Sink(os.path.join(out_dir, "hotel_profiles.csv"), PROFILE_COLS)
+    sr = Sink(os.path.join(out_dir, "hotel_rooms.csv"), ROOM_COLS)
+    sn = Sink(os.path.join(out_dir, "hotel_nearby.csv"), NEARBY_COLS)
     prog_p = os.path.join(out_dir, "progress_profile.json")
     done = set()
     if os.path.exists(prog_p):
@@ -287,7 +287,7 @@ def run(cfg, sel, a):
             if key in done: continue
             url = row.get("url") or C.build_url(row, cfg, "detail")
             C.log("(%d/%d) %s %s" % (n + 1, min(cap, len(order)), hid, row.get("hotel_name") or ""))
-            base = {"capture_time": C.stamp(), "ctrip_hotel_id": hid,
+            base = {"capture_time": C.stamp(), "platform_hotel_id": hid,
                     "hotel_name": row.get("hotel_name", ""), "city": row.get("city", ""),
                     "checkin": ci, "checkout": co, "source_url": url}
             b = C.Bsk(cfg.get("bsk_cli"), cfg)
@@ -312,7 +312,7 @@ def run(cfg, sel, a):
                 hit = C.blocked({"__login_wall": v.get("login_wall"), "__body": v.get("body"), "__title": v.get("title")})
                 if hit and allow:
                     C.log("  检测到 %s，交真人处理..." % hit)
-                    b.handoff("携程需要登录或完成验证才能查看酒店详情。请在真实浏览器里处理完后回到此任务。", cfg.get("handoff_timeout", 300))
+                    b.handoff("目标站点需要登录或完成验证才能查看酒店详情。请在真实浏览器里处理完后回到此任务。", cfg.get("handoff_timeout", 300))
                     C.jitter([1.5, 3.0])
                     r = b.evaluate(js, depends=depends)
                     v = r.get("value") if isinstance(r.get("value"), dict) else {}
@@ -326,10 +326,10 @@ def run(cfg, sel, a):
                     if hit: pr["status"] = "needs_login"; pr["notes"] = hit
                     sp.put(pr)
                     for rm in rms:
-                        sr.put(dict(rm, capture_time=pr["capture_time"], ctrip_hotel_id=hid,
+                        sr.put(dict(rm, capture_time=pr["capture_time"], platform_hotel_id=hid,
                                     hotel_name=pr["hotel_name"], checkin=ci, checkout=co))
                     for p in pois:
-                        sn.put(dict(p, capture_time=pr["capture_time"], ctrip_hotel_id=hid, hotel_name=pr["hotel_name"]))
+                        sn.put(dict(p, capture_time=pr["capture_time"], platform_hotel_id=hid, hotel_name=pr["hotel_name"]))
                     C.log("  -> %s | 房型 %d | 周边 %d | 会议室 %s 泳池 %s" %
                           (pr["status"], len(rms), len(pois), pr["has_meeting_room"], pr["has_pool"]))
             except Exception as e:
