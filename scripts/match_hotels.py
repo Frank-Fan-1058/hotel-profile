@@ -235,8 +235,16 @@ def collect_pool(cfg, city_id=None, rounds=12, per_round_pause=(2.0, 3.0)):
         b.navigate(url)
         C.jitter([3.2, 4.2])
         for i in range(int(rounds)):
-            r = b.evaluate(POOL_JS)
-            v = r.get("value") if isinstance(r.get("value"), dict) else {}
+            r, v = {}, {}
+            # 页面风控抖动时 evaluate 可能整体失败（code=retry_exhausted），重取几次再判空
+            for attempt in range(3):
+                r = b.evaluate(POOL_JS)
+                v = r.get("value") if isinstance(r.get("value"), dict) else {}
+                if v.get("map"):
+                    break
+                if r.get("code"):
+                    C.log("    取候选失败(%s)，重试 %d/3" % (r.get("code"), attempt + 1))
+                    C.jitter([1.5, 2.5])
             m = v.get("map") or {}
             before = len(pool)
             pool.update(m)

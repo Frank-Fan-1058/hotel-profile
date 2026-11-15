@@ -62,7 +62,7 @@ bsk status --json
 问清目标站点、城市、入住/离店日期、酒店清单。清单三种形态按序优先：
 
 1. **用户给了 Excel / CSV 名单**（常见，名称可能是俗称）→ 走第 2 步匹配
-2. **用户给了 hotel_id** → 直接写入 `scripts/config/hotels.profile.csv`
+2. **用户给了 hotel_id** → 直接写入 `scripts/hotels.profile.csv`
 3. **用户只给了城市** → 用列表页整页快照（`--mode list`）或 `--from-list` 自动发现
 
 清单列：`hotel_id,url,city_id,city,hotel_name,checkin,checkout,room_type,note`
@@ -93,7 +93,7 @@ python scripts/hotel_scraper.py --mode match --input "用户名单.xlsx" --base-
 匹配完成后复制成清单：
 
 ```bash
-cp output/matched_hotels.csv scripts/config/hotels.profile.csv
+cp output/matched_hotels.csv scripts/hotels.profile.csv
 ```
 
 ## 第 3 步：跑采集
@@ -138,7 +138,7 @@ python scripts/hotel_scraper.py --mode profile --from-list "<列表页URL>" --li
 python scripts/hotel_scraper.py --calibrate "<真实页面URL>"
 ```
 
-看 `output/calibration.json` 的 `class_hints`，调 `scripts/config/selectors.json` 候选 CSS，再 `--limit 1` 验证。价格务必用 `.room-price .sale`（成交价）/ `.delete`（原价），**不要**用宽泛的 `[class*=price]`（会命中左侧筛选栏）。
+看 `output/calibration.json` 的 `class_hints`，调 `scripts/selectors.json` 候选 CSS，再 `--limit 1` 验证。价格务必用 `.room-price .sale`（成交价）/ `.delete`（原价），**不要**用宽泛的 `[class*=price]`（会命中左侧筛选栏）。
 
 ## 排障
 
@@ -149,6 +149,20 @@ python scripts/hotel_scraper.py --calibrate "<真实页面URL>"
 | `retry_exhausted` | 页面风控抖动，已每家用独立会话 + 重试；仍失败跳过并记 `error` |
 | Excel 没生成 | 缺 `openpyxl`，`pip install openpyxl`；CSV 不受影响 |
 | 名称匹配全落 review | 用户名称与站点差异大或候选池太小（加大 `pool_rounds`） |
+| 上传时提示「目录层级超限」 | 压缩包里出现了三级目录，保持 根/二级/文件 两级即可 |
+
+## 包结构约束
+
+平台只接受**两级目录**（根目录 / 二级目录 / 文件），因此 16 个文件按此平铺：
+
+```
+hotel-profile/
+├─ SKILL.md
+├─ references/        # 4 篇说明
+└─ scripts/           # 5 个脚本 + settings.json / selectors.json / 4 份清单模板
+```
+
+配置就在 `scripts/` 下（不再有 `scripts/config/` 子目录），脚本会自动识别这个布局。改选择器就改 `scripts/selectors.json`，改站点就改 `scripts/settings.json` 的 `base_url`。
 
 ## 参考
 

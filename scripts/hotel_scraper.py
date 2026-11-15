@@ -18,12 +18,23 @@ import argparse, csv, json, os, random, re, shutil, subprocess, sys, time, datet
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def _pick_cfg_dir(root):
-    """配置目录：优先 <root>/config，其次 <root>/scripts/config（WorkBuddy 技能包布局）。"""
-    for rel in ("config", os.path.join("scripts", "config")):
-        p = os.path.join(root, rel)
-        if os.path.isdir(p):
+    """配置目录，按优先级探测，兼容三种布局：
+
+    1. <root>/config                —— 本仓库/DSH 技能目录
+    2. <root>/scripts/config        —— 深层嵌套（部分平台允许子目录）
+    3. <root>/scripts               —— 配置平铺（平台限制两级目录时用）
+    4. <root>                       —— 兜底
+    """
+    cands = [
+        os.path.join(root, "config"),
+        os.path.join(root, "scripts", "config"),
+        os.path.join(root, "scripts"),
+        root,
+    ]
+    for p in cands:
+        if os.path.isfile(os.path.join(p, "settings.json")):
             return p
-    return os.path.join(root, "config")
+    return cands[0]
 
 CFG = _pick_cfg_dir(HERE)
 CF = 0x08000000 if os.name == "nt" else 0  # CREATE_NO_WINDOW
